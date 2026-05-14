@@ -14181,7 +14181,7 @@ function canonicalizeTeamConfigWorkers(config2) {
   return {
     ...config2,
     workers,
-    worker_count: workers.length
+    worker_count: workers.length > 0 ? workers.length : config2.worker_count ?? 0
   };
 }
 var init_worker_canonicalization = __esm({
@@ -27726,6 +27726,7 @@ function isTeamTask(value) {
 }
 async function withLock(lockDir, fn) {
   const STALE_MS = 3e4;
+  await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(lockDir), { recursive: true });
   try {
     await (0, import_promises7.mkdir)(lockDir, { recursive: false });
   } catch (err) {
@@ -27937,7 +27938,22 @@ async function teamClaimTask(teamName, taskId, workerName2, expectedVersion, cwd
     teamName,
     cwd: cwd2,
     readTask: teamReadTask,
-    readTeamConfig: teamReadConfig,
+    readTeamConfig: async (tn, c) => {
+      const cfg = await teamReadConfig(tn, c);
+      if (!cfg) return null;
+      if (cfg.workers.length > 0) return cfg;
+      const match = /^worker-(\d+)$/.exec(workerName2);
+      const workerIndex = match ? Number.parseInt(match[1], 10) : 0;
+      if (workerIndex >= 1 && workerIndex <= (cfg.worker_count ?? 0)) {
+        return {
+          ...cfg,
+          workers: Array.from({ length: cfg.worker_count ?? 0 }, (_, index) => ({
+            name: `worker-${index + 1}`
+          }))
+        };
+      }
+      return cfg;
+    },
     withTaskClaimLock,
     normalizeTask,
     isTerminalTaskStatus: isTerminalTeamTaskStatus,
@@ -45300,9 +45316,9 @@ function renderCwd(cwd2, format = "relative", useHyperlinks = false) {
       displayPath = cwd2;
       break;
     case "folder": {
-      const parent = (0, import_node_path14.basename)((0, import_node_path14.dirname)(cwd2));
-      const folder = (0, import_node_path14.basename)(cwd2);
-      displayPath = parent ? (0, import_node_path14.join)(parent, folder) : folder;
+      const parent = (0, import_node_path15.basename)((0, import_node_path15.dirname)(cwd2));
+      const folder = (0, import_node_path15.basename)(cwd2);
+      displayPath = parent ? (0, import_node_path15.join)(parent, folder) : folder;
       break;
     }
     default:
@@ -45315,12 +45331,12 @@ function renderCwd(cwd2, format = "relative", useHyperlinks = false) {
   }
   return rendered;
 }
-var import_node_os4, import_node_path14;
+var import_node_os4, import_node_path15;
 var init_cwd = __esm({
   "src/hud/elements/cwd.ts"() {
     "use strict";
     import_node_os4 = require("node:os");
-    import_node_path14 = require("node:path");
+    import_node_path15 = require("node:path");
     init_colors();
   }
 });
@@ -45344,14 +45360,14 @@ var init_hostname = __esm({
 
 // src/hud/elements/git.ts
 function getGitRepoName(cwd2) {
-  const key = cwd2 ? (0, import_node_path15.resolve)(cwd2) : process.cwd();
+  const key = cwd2 ? (0, import_node_path16.resolve)(cwd2) : process.cwd();
   const cached2 = repoCache.get(key);
   if (cached2 && Date.now() < cached2.expiresAt) {
     return cached2.value;
   }
   let result = null;
   try {
-    const url = (0, import_node_child_process10.execSync)("git remote get-url origin", {
+    const url = (0, import_node_child_process11.execSync)("git remote get-url origin", {
       cwd: cwd2,
       encoding: "utf-8",
       timeout: 1e3,
@@ -45371,14 +45387,14 @@ function getGitRepoName(cwd2) {
   return result;
 }
 function getGitBranch(cwd2) {
-  const key = cwd2 ? (0, import_node_path15.resolve)(cwd2) : process.cwd();
+  const key = cwd2 ? (0, import_node_path16.resolve)(cwd2) : process.cwd();
   const cached2 = branchCache.get(key);
   if (cached2 && Date.now() < cached2.expiresAt) {
     return cached2.value;
   }
   let result = null;
   try {
-    const branch = (0, import_node_child_process10.execSync)("git branch --show-current", {
+    const branch = (0, import_node_child_process11.execSync)("git branch --show-current", {
       cwd: cwd2,
       encoding: "utf-8",
       timeout: 1e3,
@@ -45393,7 +45409,7 @@ function getGitBranch(cwd2) {
   return result;
 }
 function getWorktreeInfo(cwd2) {
-  const key = cwd2 ? (0, import_node_path15.resolve)(cwd2) : process.cwd();
+  const key = cwd2 ? (0, import_node_path16.resolve)(cwd2) : process.cwd();
   const cached2 = worktreeCache.get(key);
   if (cached2 && Date.now() < cached2.expiresAt) {
     return cached2.value;
@@ -45407,20 +45423,20 @@ function getWorktreeInfo(cwd2) {
   };
   let result = { isWorktree: false, worktreeName: null };
   try {
-    const gitDir = (0, import_node_child_process10.execSync)("git rev-parse --git-dir", execOpts).trim();
-    const gitCommonDir = (0, import_node_child_process10.execSync)("git rev-parse --git-common-dir", execOpts).trim();
-    let resolvedGitDir = (0, import_node_path15.resolve)(key, gitDir);
-    let resolvedCommonDir = (0, import_node_path15.resolve)(key, gitCommonDir);
+    const gitDir = (0, import_node_child_process11.execSync)("git rev-parse --git-dir", execOpts).trim();
+    const gitCommonDir = (0, import_node_child_process11.execSync)("git rev-parse --git-common-dir", execOpts).trim();
+    let resolvedGitDir = (0, import_node_path16.resolve)(key, gitDir);
+    let resolvedCommonDir = (0, import_node_path16.resolve)(key, gitCommonDir);
     try {
-      resolvedGitDir = (0, import_node_fs11.realpathSync)(resolvedGitDir);
+      resolvedGitDir = (0, import_node_fs12.realpathSync)(resolvedGitDir);
     } catch {
     }
     try {
-      resolvedCommonDir = (0, import_node_fs11.realpathSync)(resolvedCommonDir);
+      resolvedCommonDir = (0, import_node_fs12.realpathSync)(resolvedCommonDir);
     } catch {
     }
     if (resolvedGitDir !== resolvedCommonDir) {
-      result = { isWorktree: true, worktreeName: (0, import_node_path15.basename)(resolvedGitDir) };
+      result = { isWorktree: true, worktreeName: (0, import_node_path16.basename)(resolvedGitDir) };
     }
   } catch {
   }
@@ -45442,14 +45458,14 @@ function renderGitBranch(cwd2) {
   return `${dim("branch:")}${cyan(branch)}`;
 }
 function getGitStatusCounts(cwd2) {
-  const key = cwd2 ? (0, import_node_path15.resolve)(cwd2) : process.cwd();
+  const key = cwd2 ? (0, import_node_path16.resolve)(cwd2) : process.cwd();
   const cached2 = statusCache.get(key);
   if (cached2 && Date.now() < cached2.expiresAt) {
     return cached2.value;
   }
   let result = null;
   try {
-    const output = (0, import_node_child_process10.execSync)("git --no-optional-locks status --porcelain -b", {
+    const output = (0, import_node_child_process11.execSync)("git --no-optional-locks status --porcelain -b", {
       cwd: cwd2,
       encoding: "utf-8",
       timeout: 1e3,
@@ -45499,13 +45515,13 @@ function renderGitStatus(cwd2, labels = DEFAULT_HUD_LABELS) {
   if (behind > 0) parts.push(`${red(labels.behind)}${behind}`);
   return parts.join(" ");
 }
-var import_node_child_process10, import_node_fs11, import_node_path15, CACHE_TTL_MS3, repoCache, branchCache, worktreeCache, statusCache;
+var import_node_child_process11, import_node_fs12, import_node_path16, CACHE_TTL_MS3, repoCache, branchCache, worktreeCache, statusCache;
 var init_git = __esm({
   "src/hud/elements/git.ts"() {
     "use strict";
-    import_node_child_process10 = require("node:child_process");
-    import_node_fs11 = require("node:fs");
-    import_node_path15 = require("node:path");
+    import_node_child_process11 = require("node:child_process");
+    import_node_fs12 = require("node:fs");
+    import_node_path16 = require("node:path");
     init_colors();
     init_types4();
     CACHE_TTL_MS3 = 3e4;
@@ -87653,13 +87669,16 @@ function inferDelegationPlanForTeamTask(text) {
 
 // src/cli/commands/team.ts
 init_loader();
+var import_node_fs9 = require("node:fs");
+var import_node_child_process10 = require("node:child_process");
+var import_node_path12 = require("node:path");
 var HELP_TOKENS = /* @__PURE__ */ new Set(["--help", "-h", "help"]);
 var MIN_WORKER_COUNT = 1;
 var MAX_WORKER_COUNT = 20;
 var VALID_TEAM_CLI_AGENT_TYPES = /* @__PURE__ */ new Set(["claude", "codex", "gemini"]);
 var DEFAULT_TEAM_CLI_AGENT_TYPE = "claude";
 var TEAM_HELP = `
-Usage: omc team [N:agent-type[:role]] [--new-window] [--auto-merge] "<task description>"
+Usage: omc team [N:agent-type[:role]] [--new-window] [--auto-merge] [--no-decompose] "<task description>"
        omc team status <team-name>
        omc team shutdown <team-name> [--force]
        omc team api <operation> [--input <json>] [--json]
@@ -87678,6 +87697,7 @@ Examples:
 Worktrees (opt-in): set team.ops.worktreeMode or OMC_TEAM_WORKTREE_MODE=detached|branch to launch workers from .omc/team/<team>/worktrees/<worker>. Status includes workspace/worktree metadata.
 
 Auto-merge (v2-only):
+  --no-decompose       Treat the launch text as pre-authored/fixed worker scope; do not split by commas/lists.
   --auto-merge          Enable per-commit auto-merge to leader and auto-rebase fanout.
                         Each worker runs in a dedicated git worktree on omc-team/{team}/{worker}.
                         Bursts of rapid worker commits coalesce to a single merge of HEAD.
@@ -87757,7 +87777,8 @@ var TEAM_API_OPERATION_NOTES = {
 var NUMBERED_LINE_RE = /^\s*\d+[.)]\s+(.+)$/;
 var BULLETED_LINE_RE = /^\s*[-*•]\s+(.+)$/;
 var CONJUNCTION_SPLIT_RE = /\s+(?:and|,\s*and|,)\s+/i;
-function resolveTeamFanoutLimit(requestedWorkerCount, _explicitAgentType, _explicitWorkerCount, plan) {
+function resolveTeamFanoutLimit(requestedWorkerCount, _explicitAgentType, explicitWorkerCount, plan, noDecompose = false) {
+  if (explicitWorkerCount !== void 0 || noDecompose) return requestedWorkerCount;
   if (plan.strategy === "atomic") return requestedWorkerCount;
   const subtaskCount = plan.subtasks.length;
   if (subtaskCount > 0 && subtaskCount < requestedWorkerCount) {
@@ -87802,7 +87823,30 @@ function splitTaskString(task) {
   };
 }
 function slugifyTask(task) {
-  return task.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "team-task";
+  const compact = task.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return compact.slice(0, 30).replace(/^-|-$/g, "") || "team-task";
+}
+function resolveAvailableTeamName(baseName, cwd2) {
+  const sanitizedBase = slugifyTask(baseName);
+  const stateRoot2 = (0, import_node_path12.join)(cwd2, ".omc", "state", "team");
+  const teamDir3 = (name) => (0, import_node_path12.join)(stateRoot2, name);
+  if (!(0, import_node_fs9.existsSync)(teamDir3(sanitizedBase))) return sanitizedBase;
+  for (let suffix = 2; suffix <= 99; suffix++) {
+    const suffixText = `-${suffix}`;
+    const candidate = `${sanitizedBase.slice(0, 30 - suffixText.length).replace(/-$/g, "")}${suffixText}`;
+    if (!(0, import_node_fs9.existsSync)(teamDir3(candidate))) return candidate;
+  }
+  throw new Error(`Unable to allocate a fresh team name for ${sanitizedBase}; remove stale .omc/state/team entries or choose a more specific launch task.`);
+}
+function isTeamStateLive(config2) {
+  const target = typeof config2?.tmux_session === "string" ? config2.tmux_session.trim() : "";
+  if (!target) return false;
+  try {
+    (0, import_node_child_process10.execFileSync)("tmux", ["has-session", "-t", target], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }
 function getTeamWorkerIdentityFromEnv(env2 = process.env) {
   const omc = typeof env2.OMC_TEAM_WORKER === "string" ? env2.OMC_TEAM_WORKER.trim() : "";
@@ -87812,7 +87856,7 @@ function getTeamWorkerIdentityFromEnv(env2 = process.env) {
 }
 async function assertTeamSpawnAllowed(cwd2, env2 = process.env) {
   const workerIdentity = getTeamWorkerIdentityFromEnv(env2);
-  const { teamReadManifest: teamReadManifest2 } = await Promise.resolve().then(() => (init_team_ops(), team_ops_exports));
+  const { teamReadConfig: teamReadConfig2, teamReadManifest: teamReadManifest2 } = await Promise.resolve().then(() => (init_team_ops(), team_ops_exports));
   const { findActiveTeamsV2: findActiveTeamsV22 } = await Promise.resolve().then(() => (init_runtime_v2(), runtime_v2_exports));
   const { DEFAULT_TEAM_GOVERNANCE: DEFAULT_TEAM_GOVERNANCE2, normalizeTeamGovernance: normalizeTeamGovernance2 } = await Promise.resolve().then(() => (init_governance(), governance_exports));
   if (workerIdentity) {
@@ -87833,6 +87877,8 @@ async function assertTeamSpawnAllowed(cwd2, env2 = process.env) {
   }
   const activeTeams = await findActiveTeamsV22(cwd2);
   for (const activeTeam of activeTeams) {
+    const config2 = await teamReadConfig2(activeTeam, cwd2);
+    if (!isTeamStateLive(config2)) continue;
     const manifest = await teamReadManifest2(activeTeam, cwd2);
     const governance = normalizeTeamGovernance2(manifest?.governance, manifest?.policy);
     if (governance.one_team_per_leader_session ?? DEFAULT_TEAM_GOVERNANCE2.one_team_per_leader_session) {
@@ -87869,6 +87915,7 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
   let json = false;
   let newWindow = false;
   let autoMerge = process.env.OMC_TEAMS_AUTO_MERGE === "1";
+  let noDecompose = false;
   const normalizedDefaultAgentType = VALID_TEAM_CLI_AGENT_TYPES.has(defaultAgentType) ? defaultAgentType : DEFAULT_TEAM_CLI_AGENT_TYPE;
   const filteredArgs = [];
   for (const arg of args) {
@@ -87878,6 +87925,8 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
       newWindow = true;
     } else if (arg === "--auto-merge") {
       autoMerge = true;
+    } else if (arg === "--no-decompose" || arg === "--fixed-workers" || arg === "--preformed-plan") {
+      noDecompose = true;
     } else {
       filteredArgs.push(arg);
     }
@@ -87885,6 +87934,7 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
   const first = filteredArgs[0] || "";
   let role;
   let specMatched = false;
+  let explicitWorkerSpec = false;
   if (first.includes(",")) {
     const segments = first.split(",");
     const parsedSegments = [];
@@ -87913,6 +87963,7 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
       const uniqueRoles = [...new Set(roles)];
       if (uniqueRoles.length === 1 && uniqueRoles[0]) role = uniqueRoles[0];
       specMatched = true;
+      explicitWorkerSpec = true;
       filteredArgs.shift();
     }
   }
@@ -87927,6 +87978,7 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
         agentType: normalized.agentType,
         ...role ? { role } : {}
       }));
+      explicitWorkerSpec = true;
       filteredArgs.shift();
     }
   }
@@ -87939,7 +87991,32 @@ function parseTeamArgs(tokens, defaultAgentType = "claude") {
     throw new Error('Usage: omc team [N:agent-type] "<task description>"');
   }
   const teamName = slugifyTask(task);
-  return { workerCount, agentTypes, workerSpecs, role, task, teamName, json, newWindow, autoMerge };
+  return { workerCount, agentTypes, workerSpecs, role, task, teamName, json, newWindow, autoMerge, explicitWorkerSpec, noDecompose };
+}
+function buildTeamLaunchTasks(parsed, decomposition, effectiveWorkerCount) {
+  const tasks = [];
+  if (parsed.explicitWorkerSpec && !parsed.noDecompose && decomposition.strategy !== "atomic" && decomposition.subtasks.length > 1 && decomposition.subtasks.length !== effectiveWorkerCount) {
+    throw new Error(
+      `Pre-authored task scope count (${decomposition.subtasks.length}) must match explicit worker count (${effectiveWorkerCount}); use --no-decompose to give every worker the full launch text.`
+    );
+  }
+  const canUseDecomposition = !parsed.noDecompose && decomposition.strategy !== "atomic" && decomposition.subtasks.length > 1 && (!parsed.explicitWorkerSpec || decomposition.subtasks.length === effectiveWorkerCount);
+  for (let i = 0; i < effectiveWorkerCount; i++) {
+    const workerSpec = parsed.workerSpecs[i];
+    const roleLabel = workerSpec?.role ? ` (${workerSpec.role})` : "";
+    const source = canUseDecomposition ? decomposition.subtasks[i] : void 0;
+    const description = source?.description ?? parsed.task;
+    const subject = source?.subject ?? (effectiveWorkerCount === 1 ? parsed.task.slice(0, 80) : `Worker ${i + 1}${roleLabel}: ${parsed.task}`.slice(0, 80));
+    const delegation = inferDelegationPlanForTeamTask(description);
+    tasks.push({
+      subject,
+      description,
+      owner: `worker-${i + 1}`,
+      ...workerSpec?.role ? { role: workerSpec.role } : {},
+      ...delegation ? { delegation } : {}
+    });
+  }
+  return tasks;
 }
 function sampleValueForField(field) {
   switch (field) {
@@ -88088,32 +88165,12 @@ async function handleTeamStart(parsed, cwd2) {
   const effectiveWorkerCount = resolveTeamFanoutLimit(
     parsed.workerCount,
     parsed.agentTypes[0],
-    parsed.workerCount,
-    decomposition
+    parsed.explicitWorkerSpec ? parsed.workerCount : void 0,
+    decomposition,
+    parsed.noDecompose
   );
-  const tasks = [];
-  if (decomposition.strategy !== "atomic" && decomposition.subtasks.length > 1) {
-    const subtasks = decomposition.subtasks.slice(0, effectiveWorkerCount);
-    for (let i = 0; i < subtasks.length; i++) {
-      const delegation = inferDelegationPlanForTeamTask(subtasks[i].description);
-      tasks.push({
-        subject: subtasks[i].subject,
-        description: subtasks[i].description,
-        owner: `worker-${i + 1}`,
-        ...delegation ? { delegation } : {}
-      });
-    }
-  } else {
-    for (let i = 0; i < effectiveWorkerCount; i++) {
-      const delegation = inferDelegationPlanForTeamTask(parsed.task);
-      tasks.push({
-        subject: effectiveWorkerCount === 1 ? parsed.task.slice(0, 80) : `Worker ${i + 1}: ${parsed.task}`.slice(0, 80),
-        description: parsed.task,
-        owner: `worker-${i + 1}`,
-        ...delegation ? { delegation } : {}
-      });
-    }
-  }
+  const tasks = buildTeamLaunchTasks(parsed, decomposition, effectiveWorkerCount);
+  const launchTeamName = resolveAvailableTeamName(parsed.teamName, cwd2);
   let rolePrompt;
   if (parsed.role) {
     const { loadAgentPrompt: loadAgentPrompt2 } = await Promise.resolve().then(() => (init_utils(), utils_exports));
@@ -88123,7 +88180,7 @@ async function handleTeamStart(parsed, cwd2) {
   if (isRuntimeV2Enabled2()) {
     const { startTeamV2: startTeamV22, monitorTeamV2: monitorTeamV22 } = await Promise.resolve().then(() => (init_runtime_v2(), runtime_v2_exports));
     const runtime2 = await startTeamV22({
-      teamName: parsed.teamName,
+      teamName: launchTeamName,
       workerCount: effectiveWorkerCount,
       agentTypes: parsed.agentTypes.slice(0, effectiveWorkerCount),
       tasks,
@@ -88157,7 +88214,7 @@ async function handleTeamStart(parsed, cwd2) {
   }
   const { startTeam: startTeam2, monitorTeam: monitorTeam2 } = await Promise.resolve().then(() => (init_runtime(), runtime_exports));
   const runtime = await startTeam2({
-    teamName: parsed.teamName,
+    teamName: launchTeamName,
     workerCount: effectiveWorkerCount,
     agentTypes: parsed.agentTypes.slice(0, effectiveWorkerCount),
     tasks,
@@ -89246,9 +89303,9 @@ function sleep5(ms) {
 var import_promises20 = require("node:fs/promises");
 
 // src/goal-workflows/claude-goal-snapshot.ts
-var import_node_fs9 = require("node:fs");
+var import_node_fs10 = require("node:fs");
 var import_promises18 = require("node:fs/promises");
-var import_node_path12 = require("node:path");
+var import_node_path13 = require("node:path");
 var ClaudeGoalSnapshotError = class extends Error {
 };
 function safeObject(value) {
@@ -89301,8 +89358,8 @@ async function readClaudeGoalSnapshotInput(raw, cwd2 = process.cwd()) {
   try {
     return parseClaudeGoalSnapshot(JSON.parse(trimmed));
   } catch {
-    const path22 = (0, import_node_path12.resolve)(cwd2, trimmed);
-    if (!(0, import_node_fs9.existsSync)(path22)) {
+    const path22 = (0, import_node_path13.resolve)(cwd2, trimmed);
+    if (!(0, import_node_fs10.existsSync)(path22)) {
       throw new ClaudeGoalSnapshotError(`Claude goal snapshot is neither valid JSON nor a readable path: ${trimmed}`);
     }
     try {
@@ -89345,9 +89402,9 @@ function formatClaudeGoalReconciliation(reconciliation) {
 }
 
 // src/ultragoal/artifacts.ts
-var import_node_fs10 = require("node:fs");
+var import_node_fs11 = require("node:fs");
 var import_promises19 = require("node:fs/promises");
-var import_node_path13 = require("node:path");
+var import_node_path14 = require("node:path");
 var ULTRAGOAL_DIR = ".omc/ultragoal";
 var ULTRAGOAL_BRIEF = "brief.md";
 var ULTRAGOAL_GOALS = "goals.json";
@@ -89358,19 +89415,19 @@ function iso(now = /* @__PURE__ */ new Date()) {
   return now.toISOString();
 }
 function ultragoalDir(cwd2) {
-  return (0, import_node_path13.join)(cwd2, ULTRAGOAL_DIR);
+  return (0, import_node_path14.join)(cwd2, ULTRAGOAL_DIR);
 }
 function ultragoalBriefPath(cwd2) {
-  return (0, import_node_path13.join)(ultragoalDir(cwd2), ULTRAGOAL_BRIEF);
+  return (0, import_node_path14.join)(ultragoalDir(cwd2), ULTRAGOAL_BRIEF);
 }
 function ultragoalGoalsPath(cwd2) {
-  return (0, import_node_path13.join)(ultragoalDir(cwd2), ULTRAGOAL_GOALS);
+  return (0, import_node_path14.join)(ultragoalDir(cwd2), ULTRAGOAL_GOALS);
 }
 function ultragoalLedgerPath(cwd2) {
-  return (0, import_node_path13.join)(ultragoalDir(cwd2), ULTRAGOAL_LEDGER);
+  return (0, import_node_path14.join)(ultragoalDir(cwd2), ULTRAGOAL_LEDGER);
 }
 function repoRelative(cwd2, path22) {
-  return (0, import_node_path13.relative)(cwd2, path22).split("\\").join("/");
+  return (0, import_node_path14.relative)(cwd2, path22).split("\\").join("/");
 }
 function cleanLine(line) {
   return line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, "").trim();
@@ -89496,7 +89553,7 @@ async function writePlan(cwd2, plan) {
 `);
 }
 async function createUltragoalPlan(cwd2, options) {
-  if (!options.force && (0, import_node_fs10.existsSync)(ultragoalGoalsPath(cwd2))) {
+  if (!options.force && (0, import_node_fs11.existsSync)(ultragoalGoalsPath(cwd2))) {
     throw new UltragoalError(`Refusing to overwrite existing ${ULTRAGOAL_DIR}/${ULTRAGOAL_GOALS}; pass --force to recreate it.`);
   }
   const now = iso(options.now);
