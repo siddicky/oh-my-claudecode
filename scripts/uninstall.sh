@@ -2,7 +2,7 @@
 # Oh-My-ClaudeCode Uninstaller
 # Completely removes all OMC-installed files and configurations
 
-set -e
+set -euo pipefail
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
