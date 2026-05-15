@@ -304,7 +304,7 @@ describe('Builtin Skills', () => {
             expect(skill?.template).toContain('explicit weakest-dimension rationale reporting');
             expect(skill?.template).toContain('repo-evidence citation requirement');
         });
-        it('should expose approval-gated pipeline metadata for deep-interview handoff into omc-plan', () => {
+        it('should expose approval-gated pipeline metadata for deep-interview → ralplan → task-graph', () => {
             const skill = getBuiltinSkill('deep-interview');
             expect(skill?.pipeline).toEqual({
                 steps: ['deep-interview', 'ralplan', 'task-graph'],
@@ -320,7 +320,7 @@ describe('Builtin Skills', () => {
             expect(skill?.template).not.toContain('Pipeline: `deep-interview → plan → autopilot`');
             expect(skill?.template).not.toContain('Next skill: `plan`');
             expect(skill?.template).not.toContain('3. Invoke Skill("oh-my-claudecode:plan")');
-            expect(skill?.template).toContain('Only after the user selects this option, invoke `Skill("oh-my-claudecode:plan")`');
+            expect(skill?.template).toContain('Only after the user selects this option, invoke `Skill("oh-my-claudecode:ralplan")`');
             expect(skill?.template).toContain('do not automatically invoke autopilot or any other execution skill');
             expect(skill?.template).toContain('`.omc/specs/deep-interview-{slug}.md`');
             expect(skill?.template).toContain('Why now: {one_sentence_targeting_rationale}');

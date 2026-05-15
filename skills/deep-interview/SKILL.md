@@ -466,15 +466,15 @@ After the spec is written, mark it `pending approval` and present execution opti
 
 **Options:**
 
-1. **Refine with omc-plan consensus (Recommended)**
+1. **Refine with ralplan consensus (Recommended)**
    - Description: "Consensus-refine this spec with Planner/Architect/Critic, then stop for explicit execution approval. Maximum quality."
-   - Action: Only after the user selects this option, invoke `Skill("oh-my-claudecode:plan")` with `--consensus --direct` flags and the spec file path as context.
-   - Action details: The `--direct` flag skips the omc-plan interview phase (the deep interview already gathered requirements), while `--consensus` triggers the Planner/Architect/Critic loop. When consensus completes and produces a plan in `.omc/plans/`, stop with that plan marked `pending approval`. Do not automatically invoke autopilot or any other execution skill. Keep this guard explicit: `do not automatically invoke autopilot or any other execution skill`. On later explicit execution approval, prefer `Skill("oh-my-claudecode:task-graph")` for graph-driven isolated ralph worker execution.
-   - Pipeline: `deep-interview spec → explicit approval to refine → omc-plan --consensus --direct → pending approval → separate execution approval`
+   - Action: Only after the user selects this option, invoke `Skill("oh-my-claudecode:ralplan")` with `--consensus --direct` flags and the spec file path as context.
+   - Action details: The `--direct` flag skips the ralplan interview phase (the deep interview already gathered requirements), while `--consensus` triggers the Planner/Architect/Critic loop. When consensus completes and produces a plan in `.omc/plans/`, stop with that plan marked `pending approval`. Do not automatically invoke autopilot or any other execution skill. Keep this guard explicit: `do not automatically invoke autopilot or any other execution skill`. On later explicit execution approval, prefer `Skill("oh-my-claudecode:task-graph")` for graph-driven isolated ralph worker execution.
+   - Pipeline: `deep-interview spec → explicit approval to refine → ralplan --consensus --direct → pending approval → separate execution approval`
 
 2. **Execute via task-graph mode**
    - Description: "Generate a task graph from the approved plan, run isolated short-lived ralph workers per node, then merge + verify."
-   - Action: Invoke `Skill("oh-my-claudecode:task-graph")` with approved planning artifacts as context (`.omc/plans/prd-*.md` and matching `.omc/plans/test-spec-*.md`). If only a deep-interview spec exists, first run omc-plan/ralplan refinement to produce the required PRD + test-spec pair.
+   - Action: Invoke `Skill("oh-my-claudecode:task-graph")` with approved planning artifacts as context (`.omc/plans/prd-*.md` and matching `.omc/plans/test-spec-*.md`). If only a deep-interview spec exists, first run ralplan refinement to produce the required PRD + test-spec pair.
 
 3. **Execute with autopilot**
    - Description: "Full autonomous pipeline — planning, parallel implementation, QA, validation. Faster but without consensus refinement."
