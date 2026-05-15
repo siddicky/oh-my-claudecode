@@ -2,14 +2,14 @@
 name: deep-interview
 description: Socratic deep interview with mathematical ambiguity gating before explicit execution approval
 argument-hint: "[--quick|--standard|--deep] [--autoresearch] <idea or vague description>"
-pipeline: [deep-interview, plan]
+pipeline: [deep-interview, ralplan, task-graph]
 handoff-policy: approval-required
 handoff: .omc/specs/deep-interview-{slug}.md
 level: 3
 ---
 
 <Purpose>
-Deep Interview implements Ouroboros-inspired Socratic questioning with mathematical ambiguity scoring. It replaces vague ideas with crystal-clear specifications by asking targeted questions that expose hidden assumptions, measuring clarity across weighted dimensions, and refusing to proceed until ambiguity drops below the resolved threshold for this run. The output feeds into a gated pipeline: **deep-interview → omc-plan consensus refinement → pending approval → explicitly approved execution**, ensuring maximum clarity before any mutation starts.
+Deep Interview implements Ouroboros-inspired Socratic questioning with mathematical ambiguity scoring. It replaces vague ideas with crystal-clear specifications by asking targeted questions that expose hidden assumptions, measuring clarity across weighted dimensions, and refusing to proceed until ambiguity drops below the resolved threshold for this run. The output feeds into a gated pipeline: **deep-interview → ralplan consensus refinement → task-graph generation → isolated short-lived ralph workers → merge + verification** (approval-gated), ensuring maximum clarity before any mutation starts.
 </Purpose>
 
 <Use_When>
@@ -468,22 +468,26 @@ After the spec is written, mark it `pending approval` and present execution opti
 
 1. **Refine with omc-plan consensus (Recommended)**
    - Description: "Consensus-refine this spec with Planner/Architect/Critic, then stop for explicit execution approval. Maximum quality."
-   - Action: Only after the user selects this option, invoke `Skill("oh-my-claudecode:plan")` with `--consensus --direct` flags and the spec file path as context. The `--direct` flag skips the omc-plan skill's interview phase (the deep interview already gathered requirements), while `--consensus` triggers the Planner/Architect/Critic loop. When consensus completes and produces a plan in `.omc/plans/`, stop with that plan marked `pending approval`; do not automatically invoke autopilot or any other execution skill.
+   - Action: Only after the user selects this option, invoke `Skill("oh-my-claudecode:plan")` with `--consensus --direct` flags and the spec file path as context. The `--direct` flag skips the omc-plan skill's interview phase (the deep interview already gathered requirements), while `--consensus` triggers the Planner/Architect/Critic loop. When consensus completes and produces a plan in `.omc/plans/`, stop with that plan marked `pending approval`; do not automatically invoke autopilot or any other execution skill. On later explicit execution approval, prefer `Skill("oh-my-claudecode:task-graph")` for graph-driven isolated ralph worker execution.
    - Pipeline: `deep-interview spec → explicit approval to refine → omc-plan --consensus --direct → pending approval → separate execution approval`
 
-2. **Execute with autopilot**
+2. **Execute via task-graph mode**
+   - Description: "Generate a task graph from the approved plan, run isolated short-lived ralph workers per node, then merge + verify."
+   - Action: Invoke `Skill("oh-my-claudecode:task-graph")` with the approved plan/spec path as context.
+
+3. **Execute with autopilot**
    - Description: "Full autonomous pipeline — planning, parallel implementation, QA, validation. Faster but without consensus refinement."
    - Action: Invoke `Skill("oh-my-claudecode:autopilot")` with the spec file path as context only after the user explicitly selects this execution option. The spec replaces autopilot's Phase 0 — autopilot starts at Phase 1 (Planning).
 
-3. **Execute with ralph**
+4. **Execute with ralph**
    - Description: "Persistence loop with architect verification — keeps working until all acceptance criteria pass"
    - Action: Invoke `Skill("oh-my-claudecode:ralph")` with the spec file path as the task definition.
 
-4. **Execute with team**
+5. **Execute with team**
    - Description: "N coordinated parallel agents — fastest execution for large specs"
    - Action: Invoke `Skill("oh-my-claudecode:team")` with the spec file path as the shared plan.
 
-5. **Refine further**
+6. **Refine further**
    - Description: "Continue interviewing to improve clarity (current: {score}%)"
    - Action: Return to Phase 2 interview loop.
 
@@ -648,7 +652,8 @@ Why bad: 45% ambiguity means nearly half the requirements are unclear. The mathe
 - [ ] Spec includes: topology, goal, constraints, acceptance criteria, clarity breakdown, transcript
 - [ ] Execution bridge presented via AskUserQuestion
 - [ ] Selected execution mode invoked via Skill() only after explicit execution approval (never direct implementation)
-- [ ] If 3-stage pipeline selected: omc-plan --consensus --direct invoked, then stopped with the consensus plan marked `pending approval` until the user explicitly approves execution
+- [ ] If refinement pipeline selected: omc-plan --consensus --direct invoked, then stopped with the consensus plan marked `pending approval` until the user explicitly approves execution
+- [ ] If task-graph execution selected: task graph artifact generated, isolated short-lived ralph workers run, then merge + verification completed
 - [ ] State cleaned up after execution handoff
 - [ ] Brownfield confirmation questions cite repo evidence (file/path/pattern) before asking the user to decide
 - [ ] Scope-fuzzy tasks can trigger ontology-style questioning to stabilize the core entity before feature elaboration
@@ -697,7 +702,7 @@ Autopilot: "Your request is quite open-ended. Would you like to run a deep inter
 
 If the user chooses interview, autopilot invokes `/deep-interview`. When the interview completes and the user selects "Execute with autopilot", the spec becomes Phase 0 output and autopilot continues from Phase 1 (Planning).
 
-## Approval-Gated Pipeline: deep-interview → omc-plan → pending approval
+## Approval-Gated Pipeline: deep-interview → ralplan/omc-plan → task-graph (optional execution path)
 
 The recommended refinement path chains clarity and feasibility gates, then stops for explicit execution approval:
 
@@ -713,7 +718,7 @@ The recommended refinement path chains clarity and feasibility gates, then stops
     → Loop until consensus (max 5 iterations)
     → Consensus plan written to .omc/plans/
   → Stop with the consensus plan marked pending approval
-  → Only a separate explicit execution approval may invoke team/ralph/autopilot
+  → Only a separate explicit execution approval may invoke task-graph/team/ralph/autopilot
 ```
 
 **The omc-plan skill receives the spec with `--consensus --direct` flags** because the deep interview already did the requirements gathering. The `--direct` flag (supported by the omc-plan skill, which ralplan aliases) skips the interview phase and goes straight to Planner → Architect → Critic consensus. The consensus plan includes:
