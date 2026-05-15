@@ -21,10 +21,11 @@
  *   2 - not enough turns yet
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, createReadStream } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, createReadStream } from 'fs';
 import { join } from 'path';
 import { execFileSync } from 'child_process';
 import { createInterface } from 'readline';
+import { readJsonFile } from './lib/read-json.mjs';
 
 const TURN_THRESHOLD = 10;
 const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
@@ -114,12 +115,7 @@ async function extractConversationContext(transcriptPath, maxMessages = 20) {
  */
 function readSummaryState(stateDir, sessionId) {
   const statePath = join(stateDir, `session-summary-${sessionId}.json`);
-  if (!existsSync(statePath)) return null;
-  try {
-    return JSON.parse(readFileSync(statePath, 'utf-8'));
-  } catch {
-    return null;
-  }
+  return readJsonFile(statePath);
 }
 
 /**

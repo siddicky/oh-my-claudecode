@@ -26,6 +26,7 @@ import { homedir } from "os";
 import { fileURLToPath, pathToFileURL } from "url";
 import { getClaudeConfigDir } from "./lib/config-dir.mjs";
 import { resolveOmcStateRoot } from "./lib/state-root.mjs";
+import { readJsonFile } from "./lib/read-json.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,15 +35,6 @@ const __dirname = dirname(__filename);
 const { readStdin } = await import(
   pathToFileURL(join(__dirname, "lib", "stdin.mjs")).href
 );
-
-function readJsonFile(path) {
-  try {
-    if (!existsSync(path)) return null;
-    return JSON.parse(readFileSync(path, "utf-8"));
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Get hard max iterations from OMC_SECURITY / config file.
