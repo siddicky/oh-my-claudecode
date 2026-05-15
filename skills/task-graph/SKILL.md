@@ -7,7 +7,7 @@ handoff: .omc/plans/task-graph-{slug}.md
 level: 4
 ---
 
-# Task Graph Mode
+# Task-Graph Mode
 
 Task Graph is an execution orchestrator that converts an approved consensus plan into a dependency graph, runs isolated short-lived `ralph` workers per node, then performs merge + verification before reporting completion.
 
@@ -25,7 +25,9 @@ Task Graph is an execution orchestrator that converts an approved consensus plan
 
 ## Required Inputs
 
-1. Approved plan artifact (`.omc/plans/prd-*.md` + matching `test-spec-*.md`)
+1. Approved plan artifacts (`.omc/plans/prd-*.md` + matching `test-spec-*.md`)
+   - "Matching" means the `test-spec` file corresponds to the same PRD slug (and timestamp prefix when present), following the existing planning artifact naming convention.
+   - Example: `prd-20260515T012800Z-auth-hardening.md` matches `test-spec-20260515T012800Z-auth-hardening.md`.
 2. Explicit execution approval from the user
 
 If approval is missing, stop and keep artifacts marked `pending approval`.

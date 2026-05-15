@@ -18,6 +18,7 @@ describe('task-graph execution pipeline skill', () => {
     const ralplan = getBuiltinSkill('ralplan');
 
     expect(deepInterview?.template).toContain('Skill("oh-my-claudecode:task-graph")');
+    expect(deepInterview?.template).toContain('Without explicit execution selection, stop with the spec marked `pending approval`.');
     expect(ralplan?.template).toContain('Skill("oh-my-claudecode:task-graph")');
   });
 });
