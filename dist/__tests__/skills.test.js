@@ -73,10 +73,10 @@ describe('Builtin Skills', () => {
         clearSkillsCache();
     });
     describe('createBuiltinSkills()', () => {
-        it('should return correct number of skills (34 canonical + 2 aliases)', () => {
+        it('should return correct number of skills (35 canonical + 2 aliases)', () => {
             const skills = createBuiltinSkills();
-            // 36 entries: 34 canonical skills + 2 deprecated aliases (learner, psm)
-            expect(skills).toHaveLength(36);
+            // 37 entries: 35 canonical skills + 2 deprecated aliases (learner, psm)
+            expect(skills).toHaveLength(37);
         });
         it('should return an array of BuiltinSkill objects', () => {
             const skills = createBuiltinSkills();
@@ -148,6 +148,7 @@ describe('Builtin Skills', () => {
                 'self-improve',
                 'setup',
                 'skill',
+                'task-graph',
                 'team',
                 'trace',
                 'ultraqa',
@@ -303,23 +304,23 @@ describe('Builtin Skills', () => {
             expect(skill?.template).toContain('explicit weakest-dimension rationale reporting');
             expect(skill?.template).toContain('repo-evidence citation requirement');
         });
-        it('should expose approval-gated pipeline metadata for deep-interview handoff into omc-plan', () => {
+        it('should expose approval-gated pipeline metadata for deep-interview → ralplan → task-graph', () => {
             const skill = getBuiltinSkill('deep-interview');
             expect(skill?.pipeline).toEqual({
-                steps: ['deep-interview', 'plan'],
+                steps: ['deep-interview', 'ralplan', 'task-graph'],
                 nextSkill: undefined,
                 nextSkillArgs: undefined,
                 handoff: '.omc/specs/deep-interview-{slug}.md',
                 handoffRequiresApproval: true,
             });
             expect(skill?.template).toContain('## Skill Pipeline');
-            expect(skill?.template).toContain('Pipeline: `deep-interview → plan`');
+            expect(skill?.template).toContain('Pipeline: `deep-interview → ralplan → task-graph`');
             expect(skill?.template).toContain('This stage is approval-gated');
             expect(skill?.template).toContain('unless the user explicitly approves that next step');
             expect(skill?.template).not.toContain('Pipeline: `deep-interview → plan → autopilot`');
             expect(skill?.template).not.toContain('Next skill: `plan`');
             expect(skill?.template).not.toContain('3. Invoke Skill("oh-my-claudecode:plan")');
-            expect(skill?.template).toContain('Only after the user selects this option, invoke `Skill("oh-my-claudecode:plan")`');
+            expect(skill?.template).toContain('Only after the user selects this option, invoke `Skill("oh-my-claudecode:ralplan")`');
             expect(skill?.template).toContain('do not automatically invoke autopilot or any other execution skill');
             expect(skill?.template).toContain('`.omc/specs/deep-interview-{slug}.md`');
             expect(skill?.template).toContain('Why now: {one_sentence_targeting_rationale}');
@@ -654,7 +655,7 @@ describe('Builtin Skills', () => {
     describe('listBuiltinSkillNames()', () => {
         it('should return canonical skill names by default', () => {
             const names = listBuiltinSkillNames();
-            expect(names).toHaveLength(34);
+            expect(names).toHaveLength(35);
             expect(names).toContain('ai-slop-cleaner');
             expect(names).toContain('ask');
             expect(names).toContain('autopilot');
@@ -674,6 +675,7 @@ describe('Builtin Skills', () => {
             expect(names).toContain('omc-setup');
             expect(names).toContain('setup');
             expect(names).toContain('trace');
+            expect(names).toContain('task-graph');
             expect(names).toContain('visual-verdict');
             expect(names).toContain('wiki');
             expect(names).not.toContain('swarm'); // removed in #1131
@@ -688,7 +690,7 @@ describe('Builtin Skills', () => {
         it('should include aliases when explicitly requested', () => {
             const names = listBuiltinSkillNames({ includeAliases: true });
             // swarm alias removed in #1131; psm and learner aliases still exist
-            expect(names).toHaveLength(36);
+            expect(names).toHaveLength(37);
             expect(names).toContain('ai-slop-cleaner');
             expect(names).toContain('autoresearch');
             expect(names).toContain('self-improve');
