@@ -1,7 +1,7 @@
 ---
 name: task-graph
 description: Task-graph execution mode that fans out isolated short-lived ralph workers, then merges and verifies
-argument-hint: "[--workers N] [--dry-run] <approved plan or task>"
+argument-hint: "[--workers N] [--dry-run] [--critic=codex] <approved plan or task>"
 pipeline: [deep-interview, ralplan, task-graph, ralph]
 handoff: .omc/plans/task-graph-{slug}.md
 level: 4
@@ -41,6 +41,7 @@ If approval is missing, stop and keep artifacts marked `pending approval`.
 
 2. **Isolated short-lived ralph workers**
    - For each ready node (dependency-satisfied), launch a scoped `ralph` run with only that node’s objective.
+   - Optional reviewer override: when task-graph is invoked with `--critic=codex`, pass `--critic=codex` to each spawned `ralph` worker invocation.
    - Keep workers short-lived: one node objective per worker invocation, then stop.
    - Never allow a worker to broaden scope outside its node definition.
 

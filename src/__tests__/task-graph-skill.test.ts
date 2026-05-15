@@ -9,7 +9,9 @@ describe('task-graph execution pipeline skill', () => {
   it('loads the task-graph skill with ralph worker + merge verification guidance', () => {
     const skill = getBuiltinSkill('task-graph');
     expect(skill).toBeDefined();
+    expect(skill?.argumentHint).toContain('--critic=codex');
     expect(skill?.template).toContain('isolated short-lived ralph workers');
+    expect(skill?.template).toContain('pass `--critic=codex` to each spawned `ralph` worker invocation');
     expect(skill?.template).toContain('merge + verification');
   });
 
