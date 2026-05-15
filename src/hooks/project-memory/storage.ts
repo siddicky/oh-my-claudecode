@@ -6,6 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { ProjectMemory } from './types.js';
+import { ProjectMemorySchema } from './schema.js';
 import { CACHE_EXPIRY_MS } from './constants.js';
 import { atomicWriteJson } from '../../lib/atomic-write.js';
 import { getWorktreeProjectMemoryPath } from '../../lib/worktree-paths.js';
@@ -27,14 +28,18 @@ export async function loadProjectMemory(projectRoot: string): Promise<ProjectMem
 
   try {
     const content = await fs.readFile(memoryPath, 'utf-8');
-    const memory: ProjectMemory = JSON.parse(content);
+    const raw: unknown = JSON.parse(content);
 
-    // Basic validation
-    if (!memory.version || !memory.projectRoot || !memory.lastScanned) {
+    const result = ProjectMemorySchema.safeParse(raw);
+    if (!result.success) {
+      console.error(
+        '[OMC] project-memory.json failed schema validation, treating as missing:',
+        result.error.message,
+      );
       return null;
     }
 
-    return memory;
+    return result.data as ProjectMemory;
   } catch (_error) {
     // File doesn't exist or invalid JSON
     return null;

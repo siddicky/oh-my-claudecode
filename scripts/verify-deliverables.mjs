@@ -23,6 +23,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, normalize, isAbsolute, resolve } from 'node:path';
 import { readStdin } from './lib/stdin.mjs';
+import { readJsonFile } from './lib/read-json.mjs';
 
 /**
  * Sanitize a file path to prevent directory traversal attacks.
@@ -42,21 +43,15 @@ function sanitizePath(filePath) {
 function loadDeliverableConfig(directory) {
   // Priority 1: Project-specific overrides
   const projectConfig = join(directory, '.omc', 'deliverables.json');
-  if (existsSync(projectConfig)) {
-    try {
-      return JSON.parse(readFileSync(projectConfig, 'utf-8'));
-    } catch { /* fall through to defaults */ }
-  }
+  const projectResult = readJsonFile(projectConfig);
+  if (projectResult !== null) return projectResult;
 
   // Priority 2: OMC defaults
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
   if (pluginRoot) {
     const defaultConfig = join(pluginRoot, 'templates', 'deliverables.json');
-    if (existsSync(defaultConfig)) {
-      try {
-        return JSON.parse(readFileSync(defaultConfig, 'utf-8'));
-      } catch { /* fall through */ }
-    }
+    const defaultResult = readJsonFile(defaultConfig);
+    if (defaultResult !== null) return defaultResult;
   }
 
   return null;
@@ -69,22 +64,14 @@ function detectStage(directory, sessionId) {
   // Try session-scoped state first
   if (sessionId) {
     const sessionState = join(directory, '.omc', 'state', 'sessions', sessionId, 'team-state.json');
-    if (existsSync(sessionState)) {
-      try {
-        const data = JSON.parse(readFileSync(sessionState, 'utf-8'));
-        return data.current_phase || data.currentPhase || null;
-      } catch { /* fall through */ }
-    }
+    const sessionData = readJsonFile(sessionState);
+    if (sessionData !== null) return sessionData.current_phase || sessionData.currentPhase || null;
   }
 
   // Fallback to legacy state
   const legacyState = join(directory, '.omc', 'state', 'team-state.json');
-  if (existsSync(legacyState)) {
-    try {
-      const data = JSON.parse(readFileSync(legacyState, 'utf-8'));
-      return data.current_phase || data.currentPhase || null;
-    } catch { /* fall through */ }
-  }
+  const legacyData = readJsonFile(legacyState);
+  if (legacyData !== null) return legacyData.current_phase || legacyData.currentPhase || null;
 
   return null;
 }

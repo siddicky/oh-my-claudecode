@@ -21,19 +21,11 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
 import { readStdin } from './lib/stdin.mjs';
+import { readJsonFile } from './lib/read-json.mjs';
 
 const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
 const DEFAULT_MAX_FILES = 10;
 const MARKER_FILENAME = 'code-simplifier-triggered.marker';
-
-function readJsonFile(filePath) {
-  try {
-    if (!existsSync(filePath)) return null;
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
-  } catch {
-    return null;
-  }
-}
 
 function readOmcConfig() {
   return readJsonFile(join(homedir(), '.omc', 'config.json'));
