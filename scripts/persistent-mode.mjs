@@ -53,6 +53,34 @@ function getHardMaxIterations() {
 }
 
 /**
+ * Strip JSONC comments without corrupting URLs in string values.
+ * Uses a character-by-character state machine that respects quoted strings.
+ */
+function stripJsoncComments(raw) {
+  let result = '';
+  let inString = false;
+  let i = 0;
+  while (i < raw.length) {
+    if (!inString && raw[i] === '/' && raw[i + 1] === '/') {
+      // line comment: skip to end of line
+      while (i < raw.length && raw[i] !== '\n') i++;
+    } else if (!inString && raw[i] === '/' && raw[i + 1] === '*') {
+      // block comment: skip to */
+      i += 2;
+      while (i < raw.length && !(raw[i] === '*' && raw[i + 1] === '/')) i++;
+      i += 2;
+    } else {
+      if (raw[i] === '"' && (i === 0 || raw[i - 1] !== '\\')) {
+        inString = !inString;
+      }
+      result += raw[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+/**
  * Read a single value from the security section of omc config files.
  */
 function readSecurityConfigValue(key) {
@@ -64,8 +92,7 @@ function readSecurityConfigValue(key) {
     try {
       if (!existsSync(p)) continue;
       const raw = readFileSync(p, "utf-8");
-      // Strip JSONC comments (// and /* */)
-      const json = raw.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      const json = stripJsoncComments(raw);
       const parsed = JSON.parse(json);
       if (parsed?.security && parsed.security[key] !== undefined) {
         return parsed.security[key];
