@@ -42,6 +42,7 @@ If approval is missing, stop and keep artifacts marked `pending approval`.
 2. **Isolated short-lived ralph workers**
    - For each ready node (dependency-satisfied), launch a scoped `ralph` run with only that node’s objective.
    - Optional reviewer override: when task-graph is invoked with `--critic=codex`, pass `--critic=codex` to each spawned `ralph` worker invocation.
+   - Before applying `--critic=codex`, validate Codex availability; if unavailable, briefly note fallback and continue with Ralph's default reviewer path.
    - Keep workers short-lived: one node objective per worker invocation, then stop.
    - Never allow a worker to broaden scope outside its node definition.
 
